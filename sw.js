@@ -1,5 +1,5 @@
 // CycleWater Service Worker — Offline Support
-const CACHE = 'cyclewater-v1';
+const CACHE = 'cyclewater-v2';
 const PRECACHE = [
   './',
   './index.html',

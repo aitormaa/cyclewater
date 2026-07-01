@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>CycleWater</title>
+<meta name="theme-color" content="#0EA5E9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CycleWater">
+<link rel="manifest" href="./manifest.json">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--p:#0EA5E9;--bg:#0F172A;--c1:#1E293B;--c2:#334155;--tx:#F1F5F9;--tm:#94A3B8;--br:#334155;--gn:#22C55E;--rd:#EF4444;--or:#F97316}
+body{font-family:-apple-system,sans-serif;background:var(--bg);color:var(--tx);height:100vh;overflow:hidden;display:flex}
+#sidebar{width:340px;min-width:340px;height:100vh;background:var(--bg);border-right:1px solid var(--br);display:flex;flex-direction:column;overflow:hidden;z-index:10;padding-bottom:env(safe-area-inset-bottom)}
+#sidebar-header{padding:16px 20px 10px;border-bottom:1px solid var(--br);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.logo h1{font-size:20px;font-weight:700;color:var(--p)}
+.tabs{display:flex;border-bottom:1px solid var(--br);flex-shrink:0}
+.tab{flex:1;padding:10px;font-size:12px;font-weight:600;background:none;border:none;color:var(--tm);cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:var(--p);border-bottom-color:var(--p)}
+#sidebar-content{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+#sidebar-content::-webkit-scrollbar{width:4px}
+#sidebar-content::-webkit-scrollbar-thumb{background:var(--br);border-radius:2px}
+.card{background:var(--c1);border-radius:12px;padding:14px;border:1px solid var(--br)}
+.ct{font-size:12px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.uz{border:2px dashed var(--br);border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:var(--c1)}
+.uz.drag-over{border-color:var(--p);background:rgba(14,165,233,.05)}
+.uz .ui{font-size:28px;margin-bottom:6px}
+.uz p{font-size:13px;color:var(--tm);line-height:1.4}
+.uz strong{color:var(--p)}
+.sr{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.sr:last-child{margin-bottom:0}
+.sl{font-size:13px;color:var(--tx)}.ss{font-size:11px;color:var(--tm)}
+.si{display:flex;align-items:center;gap:5px}
+input[type=number]{background:var(--c2);border:1px solid var(--br);color:var(--tx);border-radius:6px;padding:5px 7px;font-size:13px;width:65px;text-align:center}
+input[type=text]{background:var(--c2);border:1px solid var(--br);color:var(--tx);border-radius:6px;padding:6px 9px;font-size:13px;width:100%}
+input[type=text]::placeholder{color:var(--tm)}
+.unit{font-size:11px;color:var(--tm)}
+.sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.sb{background:var(--c2);border-radius:8px;padding:9px;text-align:center}
+.sv{font-size:21px;font-weight:700;color:var(--p)}
+.slb{font-size:10px;color:var(--tm);text-transform:uppercase;margin-top:1px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;width:100%}
+.btn-p{background:var(--p);color:#fff}.btn-g{background:var(--gn);color:#fff}
+.btn-o{background:transparent;color:var(--tx);border:1px solid var(--br)}
+.btn-sm{padding:5px 10px;font-size:11px;width:auto;border-radius:6px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-apply{background:rgba(14,165,233,.15);color:var(--p);border:1px solid var(--p);margin-top:10px;font-size:12px}
+.btn-apply.dirty{background:var(--p);color:#fff}
+.eb{background:var(--c2);border:1px solid var(--br);color:var(--tm);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer}
+.eb.active{background:rgba(14,165,233,.15);border-color:var(--p);color:var(--p)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:9px 11px;margin-bottom:7px;font-size:12px}
+.ai:last-child{margin-bottom:0}
+.at{color:var(--rd);font-weight:600;margin-bottom:3px}.ad{color:var(--tm);font-size:11px}
+.ao{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:9px 11px;font-size:12px;color:var(--gn);text-align:center}
+.wi{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--br);font-size:12px}
+.wi:last-child{border-bottom:none}
+.wd{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.wd.osm{background:var(--p)}.wd.community{background:var(--gn)}.wd.reported{background:var(--or)}
+.wif{flex:1;cursor:pointer}.wn{color:var(--tx);font-weight:500}.wm{color:var(--tm);font-size:10px}
+.fg{margin-bottom:9px}
+.fl{font-size:11px;color:var(--tm);margin-bottom:4px;display:block}
+.tg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.tb{background:var(--c2);border:1px solid var(--br);color:var(--tm);border-radius:8px;padding:7px 3px;font-size:11px;cursor:pointer;text-align:center}
+.tb.active{border-color:var(--p);color:var(--p);background:rgba(14,165,233,.1)}
+.tb .ti{display:block;font-size:16px;margin-bottom:2px}
+.cd{background:var(--c2);border-radius:6px;padding:7px 9px;font-size:11px;color:var(--tm);font-family:monospace;margin-bottom:7px}
+textarea{background:var(--c2);border:1px solid var(--br);color:var(--tx);border-radius:6px;padding:6px 9px;font-size:13px;width:100%;font-family:inherit;resize:vertical;min-height:55px}
+.stog{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.stog .arr{color:var(--tm);font-size:11px}.stog.col .arr{transform:rotate(-90deg)}
+.sbod{margin-top:10px}.sbod.hid{display:none}
+.cn{background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.2);border-radius:6px;padding:7px 9px;font-size:11px;color:var(--p);margin-bottom:7px;line-height:1.5}
+.wr{display:flex;align-items:center;gap:7px;padding:5px 0;font-size:12px;border-bottom:1px solid var(--br)}
+.wr:last-child{border-bottom:none}
+.cmp-head,.cmp-row{display:grid;grid-template-columns:1fr 75px 75px;gap:5px;padding:5px 0;font-size:12px;border-bottom:1px solid var(--br)}
+.cmp-head{font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase}
+.cmp-row:last-child{border-bottom:none}.cmp-w{color:var(--gn);font-weight:700}
+.pbtn{display:flex;gap:6px;margin-bottom:8px}
+.pbtn button{flex:1;background:var(--c2);border:1px solid var(--br);color:var(--tx);border-radius:8px;padding:8px 6px;font-size:12px;cursor:pointer}
+#view-bar{display:none}
+#map-container{flex:1;position:relative}
+#map{width:100%;height:100%}
+#loading{position:absolute;inset:0;background:rgba(15,23,42,.85);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100}
+.spin{width:38px;height:38px;border:3px solid var(--br);border-top-color:var(--p);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:14px}
+#loading p{color:var(--tm);font-size:13px}
+#fab{position:absolute;bottom:24px;right:24px;background:var(--gn);color:#fff;border:none;border-radius:50%;width:52px;height:52px;font-size:22px;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.4);z-index:10;display:flex;align-items:center;justify-content:center}
+#fab.active{background:var(--rd)}
+#live-btn{position:absolute;bottom:90px;right:24px;background:var(--c1);color:var(--tx);border:1px solid var(--br);border-radius:20px;padding:8px 13px;font-size:12px;font-weight:600;cursor:pointer;z-index:10;display:flex;align-items:center;gap:5px;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+#live-btn.active{background:rgba(34,197,94,.15);border-color:var(--gn);color:var(--gn)}
+#live-alert{position:absolute;bottom:0;left:0;right:0;background:rgba(14,165,233,.96);color:#fff;padding:11px 16px;padding-bottom:calc(11px + env(safe-area-inset-bottom));font-size:13px;font-weight:500;display:none;align-items:center;gap:10px;z-index:20;backdrop-filter:blur(4px)}
+#live-alert a{color:#fff;font-weight:700;text-decoration:underline;white-space:nowrap}
+#map-inst{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:var(--c1);border:1px solid var(--p);color:var(--p);padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;z-index:10;display:none;pointer-events:none;white-space:nowrap}
+#map-inst span{pointer-events:all;cursor:pointer;text-decoration:underline}
+@media(max-width:768px){
+  body{flex-direction:column}
+  #sidebar{width:100%;min-width:100%;height:44vh;flex-shrink:0;border-right:none;overflow:hidden;transition:height .28s ease}
+  #view-bar{display:flex;flex-shrink:0;background:var(--c1);border-top:1px solid var(--br);border-bottom:1px solid var(--br)}
+  #view-bar button{flex:1;background:none;border:none;color:var(--tm);font-size:15px;font-weight:700;padding:14px 8px;cursor:pointer}
+  #view-bar button:first-child{border-right:1px solid var(--br)}
+  #view-bar button.vactive{color:var(--p);background:rgba(14,165,233,.08)}
+  #map-container{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  #map{flex:1;min-height:0}
+}
+</style>
+</head>
+<body>
+<div id="sidebar">
+  <div id="sidebar-header">
+    <div class="logo"><span style="font-size:22px">💧</span><h1>CycleWater</h1></div>
+    <div style="font-size:11px;display:flex;gap:8px;align-items:center">
+      <span id="bar-user" onclick="cwIdentityEdit&&cwIdentityEdit()" style="cursor:pointer;color:var(--p)">👤 Anonymous</span>
+      <span style="color:var(--br)">·</span>
+      <span onclick="openLB()" style="cursor:pointer;color:var(--p)">🏆 Leaderboard</span>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" id="tab-a" onclick="switchTab('a')">📊 Analyse</button>
+    <button class="tab" id="tab-c" onclick="switchTab('c')">🔄 Compare</button>
+    <button class="tab" id="tab-p" onclick="switchTab('p')">🗺️ Plan</button>
+  </div>
+  <div id="sidebar-content">
+    <div id="sec-a">
+      <div class="uz" id="upload-zone" onclick="document.getElementById('fi1').click()" ondragover="ev(event)" ondrop="drop(event)" ondragleave="document.getElementById('upload-zone').classList.remove('drag-over')">
+        <div class="ui">🗺️</div><p><strong>Upload GPX route</strong><br>Drag & drop or click to browse</p>
+      </div>
+      <input type="file" id="fi1" accept=".gpx" style="display:none" onchange="handleF(event)">
+      <div id="recent-routes-slot"></div>
+    </div>
+    <div id="sec-c" style="display:none">
+      <div class="card"><div class="ct">🔄 Route Comparison</div>
+        <p style="font-size:12px;color:var(--tm);margin-bottom:10px">Load Route 1 in Analyse first, then upload Route 2 here.</p>
+        <div class="uz" id="cmp-zone" onclick="document.getElementById('fi2').click()"><div class="ui">📂</div><p><strong>Upload Route 2</strong></p></div>
+        <input type="file" id="fi2" accept=".gpx" style="display:none" onchange="handleF2(event)">
+      </div>
+      <div class="card" id="cmp-card" style="display:none"><div class="ct">📊 Results</div><div id="cmp-cnt"></div></div>
+    </div>
+    <div id="sec-p" style="display:none">
+      <div class="card"><div class="ct">🗺️ Build Route</div>
+        <p style="font-size:12px;color:var(--tm);margin-bottom:10px">Click waypoints on the map to calculate a cycling route.</p>
+        <button class="btn btn-o" id="plan-btn" onclick="togglePlanClick()" style="margin-bottom:10px;font-size:12px">📍 Click map to add waypoints</button>
+        <div id="wpt-list"><p style="font-size:12px;color:var(--tm)">No waypoints yet.</p></div>
+        <div style="display:flex;gap:7px;margin-top:10px">
+          <button class="btn btn-p" id="calc-btn" onclick="calcRoute()" disabled style="flex:1;font-size:12px">⚡ Calculate Route</button>
+          <button onclick="clearPlan()" style="background:none;border:1px solid var(--br);color:var(--tm);border-radius:8px;padding:9px 12px;cursor:pointer;font-size:16px">🗑</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="stog" onclick="toggleSec('set-bod',this)"><span class="ct" style="margin:0">⚙️ Settings</span><span class="arr">▼</span></div>
+      <div class="sbod" id="set-bod">
+        <div class="sr"><div><div class="sl">Search radius</div><div class="ss">Re-apply to take effect</div></div><div class="si"><input type="number" id="buf" value="500" min="100" max="5000" step="100" oninput="markDirty()"><span class="unit">m</span></div></div>
+        <div class="sr"><div><div class="sl">Dry zone alert</div><div class="ss">⚡ Updates instantly</div></div><div class="si"><input type="number" id="thr" value="30" min="5" max="200" step="5" oninput="onThrChange()"><span class="unit">km</span></div></div>
+        <div class="sr"><div><div class="sl">⏱ Speed</div><div class="ss">⚡ Updates instantly</div></div><div class="si"><input type="number" id="speed" value="25" min="5" max="50" step="1" oninput="onThrChange()"><span class="unit">km/h</span></div></div>
+        <div class="sr"><div><div class="sl">Nearby alert</div><div class="ss">Live mode radius</div></div><div class="si"><input type="number" id="nearby-r" value="2" min="0.5" max="10" step="0.5" oninput="markDirty()"><span class="unit">km</span></div></div>
+        <div class="sr" style="margin-top:10px"><div><div class="sl">🌡️ Temperature</div><div class="ss">⚡ Updates instantly</div></div><div class="si"><input type="number" id="temp" value="" placeholder="°C" min="-10" max="50" style="width:55px" oninput="onThrChange()"><button class="btn btn-o btn-sm" onclick="autoTemp()">Auto</button></div></div>
+        <div class="sr"><div><div class="sl">Effort level</div><div class="ss">⚡ Updates instantly</div></div><div class="si" style="gap:4px"><button class="eb" data-e="easy" onclick="selEffort(this)">Easy</button><button class="eb active" data-e="moderate" onclick="selEffort(this)">Moderate</button><button class="eb" data-e="hard" onclick="selEffort(this)">Hard</button></div></div>
+        <button class="btn btn-apply" id="apply-btn" onclick="applySettings()" disabled>⚙️ Apply Settings</button>
+      </div>
+    </div>
+    <div class="card" id="stats-card" style="display:none">
+      <div class="ct">📊 Route Overview</div>
+      <div class="sg">
+        <div class="sb"><div class="sv" id="s-dist">—</div><div class="slb">km</div></div>
+        <div class="sb"><div class="sv" id="s-wpt">—</div><div class="slb">water pts</div></div>
+        <div class="sb"><div class="sv" id="s-dry" style="color:var(--rd)">—</div><div class="slb">dry zones</div></div>
+      </div>
+    </div>
+    <div class="card" id="alerts-card" style="display:none"><div class="ct">⚠️ Dry Zone Alerts</div><div id="alerts-cnt"></div></div>
+    <div class="card" id="wlist-card" style="display:none">
+      <div class="stog col" onclick="toggleSec('wlist-bod',this)"><span class="ct" style="margin:0">💧 Water Points</span><span class="arr">▼</span></div>
+      <div class="sbod hid" id="wlist-bod"><div id="wlist-cnt"></div></div>
+    </div>
+    <div class="card">
+      <div class="stog col" onclick="toggleSec('addpt-bod',this)"><span class="ct" style="margin:0">➕ Add Water Point</span><span class="arr">▼</span></div>
+      <div class="sbod hid" id="addpt-bod">
+        <p style="font-size:11px;color:var(--p);background:rgba(14,165,233,.1);border-radius:6px;padding:7px 9px;margin-bottom:10px">No GPX needed — pin any fountain on the map. Saved on your device + community DB.</p>
+        <div style="display:flex;gap:7px;margin-bottom:10px">
+          <button class="btn btn-o" style="flex:1;font-size:12px" id="tap-btn" onclick="toggleAdd()">🗺️ Tap map</button>
+          <button class="btn btn-o" style="flex:1;font-size:12px" id="loc-btn" onclick="useMyLocation()">📍 My location</button>
+        </div>
+        <div id="pt-coords-g" style="display:none"><label class="fl">📍 Location set</label><div class="cd" id="pt-coords">—</div></div>
+        <div class="fg"><label class="fl">Type</label>
+          <div class="tg">
+            <div class="tb active" onclick="selType(this,'fountain')"><span class="ti">⛲</span>Fountain</div>
+            <div class="tb" onclick="selType(this,'tap')"><span class="ti">🚰</span>Tap</div>
+            <div class="tb" onclick="selType(this,'spring')"><span class="ti">💦</span>Spring</div>
+            <div class="tb" onclick="selType(this,'shop')"><span class="ti">🏪</span>Shop</div>
+            <div class="tb" onclick="selType(this,'bar')"><span class="ti">☕</span>Bar</div>
+            <div class="tb" onclick="selType(this,'other')"><span class="ti">🗺️</span>Other</div>
+          </div>
+        </div>
+        <div class="fg"><label class="fl">Notes <span style="color:var(--tm)">+3 pts</span></label><textarea id="pt-notes" placeholder="Behind church, potable, open 24h…"></textarea></div>
+        <div class="fg">
+          <label class="fl">📷 Photo <span style="color:var(--tm)">+5 pts</span></label>
+          <div class="pbtn">
+            <button onclick="document.getElementById('pt-photo-cam').click()">📷 Camera</button>
+            <button onclick="document.getElementById('pt-photo-gal').click()">🖼️ Gallery</button>
+          </div>
+          <input type="file" id="pt-photo-cam" accept="image/*" capture="environment" style="display:none" onchange="cwPreviewPhoto(this)">
+          <input type="file" id="pt-photo-gal" accept="image/*" style="display:none" onchange="cwPreviewPhoto(this)">
+          <div id="photo-preview" style="display:none"></div>
+        </div>
+        <div class="fg"><label class="fl">👤 Your name</label><input type="text" id="contributor-name" placeholder="e.g. Aitor" maxlength="30" oninput="saveNickname(this.value)"></div>
+        <button class="btn btn-g" id="save-pt-btn" onclick="submitPt()" disabled>💧 Save Water Point</button>
+        <div id="save-st" style="display:none;font-size:11px;text-align:center;margin-top:6px;padding:6px;border-radius:6px"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="stog col" onclick="toggleSec('sb-bod',this)"><span class="ct" style="margin:0">🔧 Community DB</span><span class="arr">▼</span></div>
+      <div class="sbod hid" id="sb-bod">
+        <div class="cn">Supabase → <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--p)">supabase.com/dashboard</a> → Settings → API</div>
+        <div class="fg"><label class="fl">Project URL</label><input type="text" id="sb-url" placeholder="https://xxxx.supabase.co"></div>
+        <div class="fg"><label class="fl">Anon / Public Key</label><input type="text" id="sb-key" placeholder="eyJ…"></div>
+        <button class="btn btn-p" onclick="initSB()" style="margin-bottom:8px">🔌 Connect to Supabase</button>
+        <div id="sb-status" style="font-size:12px;color:var(--tm);text-align:center;line-height:1.5"></div>
+      </div>
+    </div>
+    <button class="btn btn-p" id="dl-row" style="display:none" onclick="downloadGPX()">⬇️ Download Enriched GPX</button>
+    <div style="text-align:center;font-size:10px;color:var(--tm);padding-bottom:6px">© <a href="https://openstreetmap.org/copyright" target="_blank" style="color:var(--tm)">OpenStreetMap</a> · OSRM</div>
+  </div>
+</div>
+<div id="view-bar">
+  <button id="vbtn-panel" onclick="setView('map')" class="vactive">▼ Hide panel</button>
+  <button id="vbtn-map" onclick="setView('panel')">▲ Hide map</button>
+</div>
+<div id="map-container">
+  <div id="map"></div>
+  <div id="loading"><div class="spin"></div><p id="load-txt">Loading…</p></div>
+  <div id="map-inst">📍 Tap anywhere to place water point · <span onclick="cancelAdd()">cancel</span></div>
+  <button id="live-btn" onclick="toggleLive()">📍 Live Mode</button>
+  <button id="fab" onclick="toggleAdd()" title="Add water point">+</button>
+  <div id="live-alert">
+    <span id="la-txt"></span>
+    <a id="la-nav" href="#" target="_blank">Navigate →</a>
+    <button onclick="document.getElementById('live-alert').style.display='none'" style="margin-left:auto;background:none;border:none;color:#fff;cursor:pointer;font-size:18px">✕</button>
+  </div>
+</div>
+<script>
+const OVR=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+const TE={drinking_water:'💧',fountain:'⛲',water_tap:'🚰',spring:'💦',tap:'🚰',shop:'🏪',bar:'☕',other:'🗺️',community:'💧',picnic_site:'🌳',toilets:'🚻',grave_yard:'⛼',cemetery:'⛼'};
+const S={routePts:[],waterPts:[],commPts:[],routeKm:0,dryZones:[],addMode:false,pendPt:null,selType:'fountain',origGPX:null,sb:null,pendMkr:null};
+const S2={routePts:[],waterPts:[],routeKm:0,dryZones:[]};
+const REPORTED=new Set(JSON.parse(localStorage.getItem('cw_reported')||'[]'));
+let planMode=false,planWpts=[],planMkrs=[],watchId=null,liveOn=false,userMkr=null,curView='split';
+const isMobile=()=>window.innerWidth<=768;
+function saveNickname(v){localStorage.setItem('cw_nickname',v.trim());}
+function getNickname(){return localStorage.getItem('cw_nickname')||null;}
+function loadNickname(){const el=document.getElementById('contributor-name');if(el)el.value=localStorage.getItem('cw_nickname')||'';}
+function saveLocalPts(){try{localStorage.setItem('cw_local_pts',JSON.stringify(S.commPts.filter(p=>String(p.id||'').startsWith('l_'))));}catch(e){}}
+function loadLocalPts(){try{const pts=JSON.parse(localStorage.getItem('cw_local_pts')||'[]');if(pts.length){S.commPts.push(...pts);refreshLayers();}}catch(e){}}
+function setView(v){
+  const sb=document.getElementById('sidebar'),mc=document.getElementById('map-container'),bp=document.getElementById('vbtn-panel'),bm=document.getElementById('vbtn-map');
+  if(curView===v)v='split';curView=v;
+  if(v==='map'){sb.style.height='0';bp.textContent='▲ Show panel';bp.classList.add('vactive');bm.classList.remove('vactive');}
+  else if(v==='panel'){sb.style.height='calc(100vh - 50px)';mc.style.flex='0 0 0px';bm.textContent='▼ Show map';bp.classList.add('vactive');bm.classList.remove('vactive');}
+  else{sb.style.height='44vh';mc.style.flex='1 1 auto';bp.textContent='▼ Hide panel';bm.textContent='▲ Hide map';bp.classList.add('vactive');bm.classList.remove('vactive');}
+  setTimeout(()=>map.resize(),300);
+}
+function calcCarry(gk){const sp=parseFloat(document.getElementById('speed').value)||25,temp=parseFloat(document.getElementById('temp').value);if(isNaN(temp)||sp<=0)return null;const base=temp<15?.5:temp<25?.75:temp<32?1:1.25,mult=document.querySelector('.eb.active')?.dataset.e==='easy'?.8:document.querySelector('.eb.active')?.dataset.e==='hard'?1.3:1;return Math.round((gk/sp)*base*mult*1.2*10)/10;}
+async function autoTemp(){if(!S.routePts.length){alert('Load a route first.');return;}const m=S.routePts[Math.floor(S.routePts.length/2)];try{const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${m.lat}&longitude=${m.lng}&current=temperature_2m`)).json();document.getElementById('temp').value=Math.round(d.current.temperature_2m);onThrChange();}catch(e){alert('Could not fetch temperature.');}}
+function selEffort(el){document.querySelectorAll('.eb').forEach(b=>b.classList.remove('active'));el.classList.add('active');if(S.routePts.length)onThrChange();}
+function reportPoint(id){if(REPORTED.has(id)){alert('Already reported.');return;}if(confirm('Report as broken/dry?')){REPORTED.add(id);localStorage.setItem('cw_reported',JSON.stringify([...REPORTED]));refreshLayers();onThrChange();updateList();}}
+function markDirty(){const b=document.getElementById('apply-btn');b.disabled=false;b.classList.add('dirty');b.textContent='🔄 Apply Settings';}
+function onThrChange(){if(!S.routePts.length)return;S.dryZones=calcDryZones(S.routePts,[...S.waterPts,...S.commPts],parseInt(document.getElementById('thr').value)||30,S.routeKm);updateStats();updateAlerts();}
+function applySettings(){const b=document.getElementById('apply-btn');b.disabled=true;b.classList.remove('dirty');b.textContent='⚙️ Apply Settings';if(S.routePts.length)loadRouteData(S.routePts);}
+function initSB(){
+  const u=document.getElementById('sb-url').value.trim().replace(/\/+$/,''),k=document.getElementById('sb-key').value.trim(),st=document.getElementById('sb-status');
+  if(!u||!k){st.textContent='⚠️ Enter URL and Key';st.style.color='var(--or)';return;}
+  if(!window.supabase){st.textContent='❌ Library not loaded';st.style.color='var(--rd)';return;}
+  st.textContent='⏳ Connecting…';
+  try{S.sb=window.supabase.createClient(u,k);window._cwSb=S.sb;loadCommPts();}catch(e){S.sb=null;st.textContent='❌ '+e.message;st.style.color='var(--rd)';}
+}
+async function loadCommPts(){const st=document.getElementById('sb-status');try{const{data,error}=await S.sb.from('community_water_points').select('*');if(error)throw error;const remote=data||[];remote.forEach(r=>{if(!S.commPts.find(p=>p.id===r.id))S.commPts.push(r);});st.textContent=`✅ Connected — ${S.commPts.length} pts`;st.style.color='var(--gn)';if(S.routePts.length){refreshLayers();updateStats();updateList();}}catch(e){st.textContent='❌ '+e.message;st.style.color='var(--rd)';}}
+async function uploadPhoto(f){if(!S.sb)return null;try{const fn=Date.now()+'.jpg';const{error}=await S.sb.storage.from('water-photos').upload(fn,f,{upsert:true});if(error)throw error;return S.sb.storage.from('water-photos').getPublicUrl(fn).data.publicUrl;}catch(e){return null;}}
+async function saveCommPt(p){
+  p={...p,contributor_name:getNickname()||p.contributor_name||null};
+  if(!S.sb){const pt={...p,id:'l_'+Date.now()};S.commPts.push(pt);saveLocalPts();return true;}
+  try{const{data,error}=await S.sb.from('community_water_points').insert([{lat:p.lat,lng:p.lng,water_type:p.water_type,notes:p.notes||null,photo_url:p.photo_url||null,contributor_name:p.contributor_name||null,points:p.points||10}]).select();if(error)throw error;S.commPts.push(data[0]);return true;}catch(e){alert('Save error: '+e.message);return false;}
+}
+const EMPTY={type:'FeatureCollection',features:[]};
+const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:[2.349,48.864],zoom:5});
+map.addControl(new maplibregl.NavigationControl(),'top-right');
+map.addControl(new maplibregl.GeolocateControl({positionOptions:{enableHighAccuracy:true},trackUserLocation:true}),'top-right');
+map.on('load',()=>{
+  map.addSource('route',{type:'geojson',data:EMPTY});
+  map.addLayer({id:'route-h',type:'line',source:'route',paint:{'line-color':'#fff','line-width':6,'line-opacity':.2}});
+  map.addLayer({id:'route-l',type:'line',source:'route',paint:{'line-color':'#0EA5E9','line-width':3}});
+  map.addSource('route2',{type:'geojson',data:EMPTY});
+  map.addLayer({id:'route2-l',type:'line',source:'route2',paint:{'line-color':'#F97316','line-width':3,'line-dasharray':[2,2]}});
+  map.addSource('wosm',{type:'geojson',data:EMPTY});
+  map.addLayer({id:'wosm-l',type:'circle',source:'wosm',paint:{'circle-radius':9,'circle-color':'#0EA5E9','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+  map.addSource('wrep',{type:'geojson',data:EMPTY});
+  map.addLayer({id:'wrep-l',type:'circle',source:'wrep',paint:{'circle-radius':9,'circle-color':'#F97316','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+  map.addSource('wcomm',{type:'geojson',data:EMPTY});
+  map.addLayer({id:'wcomm-l',type:'circle',source:'wcomm',paint:{'circle-radius':9,'circle-color':'#22C55E','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+  ['wosm-l','wrep-l','wcomm-l'].forEach(lid=>{
+    map.on('click',lid,e=>{
+      if(S.addMode||planMode)return;e.preventDefault();
+      const p=e.features[0].properties,isC=lid==='wcomm-l',isR=lid==='wrep-l',isCem=p.water_type==='grave_yard'||p.water_type==='cemetery';
+      const em=TE[p.water_type]||'💧',tp=(p.water_type||'water').replace(/_/g,' '),nm=p.name||(tp[0].toUpperCase()+tp.slice(1));
+      const bc=isC?'34,197,94':isR?'249,115,22':isCem?'148,163,184':'14,165,233';
+      const bt=isC?'👥 Community':isR?'⚠️ Reported':isCem?'⛼ Cemetery':'🌍 OSM';
+      const badge=`<span style="background:rgba(${bc},.2);color:rgb(${bc});padding:2px 7px;border-radius:10px;font-size:11px">${bt}</span>`;
+      const photo=p.photo_url?`<img src="${p.photo_url}" style="width:100%;border-radius:6px;margin-top:7px;max-height:120px;object-fit:cover">`:'';
+      const contrib=p.contributor_name?`<div style="font-size:10px;color:#94A3B8;margin-top:4px">Added by ${p.contributor_name}</div>`:'';
+      const repBtn=!isC&&!isR?`<button onclick="reportPoint('${p.id}')" style="margin-top:7px;background:none;border:1px solid #334155;color:#94A3B8;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;width:100%">🚫 Report broken/dry</button>`:'';
+      new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:160px"><div style="font-size:16px;margin-bottom:5px">${em} ${nm}</div>${badge}${isCem?'<p style="margin-top:5px;font-size:11px;color:#94A3B8">⛼ Water tap usually near entrance</p>':''}${p.notes?`<p style="margin-top:5px;font-size:11px;opacity:.8">${p.notes}</p>`:''}${photo}${contrib}${repBtn}</div>`).addTo(map);
+    });
+    map.on('mouseenter',lid,()=>{if(!S.addMode&&!planMode)map.getCanvas().style.cursor='pointer';});
+    map.on('mouseleave',lid,()=>{map.getCanvas().style.cursor=S.addMode||planMode?'crosshair':'';});
+  });
+  map.on('click',e=>{if(e.defaultPrevented)return;if(S.addMode)placePt(e.lngLat.lat,e.lngLat.lng);else if(planMode)addWpt(e.lngLat.lat,e.lngLat.lng);});
+  loadLocalPts();
+});
+function switchTab(t){['a','c','p'].forEach(x=>{document.getElementById('sec-'+x).style.display=t===x?'block':'none';document.getElementById('tab-'+x).classList.toggle('active',t===x);});if(t!=='p'&&planMode)togglePlanClick();if(t==='p'&&S.addMode)cancelAdd();}
+function ev(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag-over');}
+function drop(e){e.preventDefault();document.getElementById('upload-zone').classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f&&f.name.toLowerCase().endsWith('.gpx'))procGPX(f);else alert('Drop a .gpx file');}
+function handleF(e){const f=e.target.files[0];if(f)procGPX(f);e.target.value='';}
+function handleF2(e){const f=e.target.files[0];if(f)procGPX2(f);e.target.value='';}
+function procGPX(f){const r=new FileReader();r.onload=e=>{S.origGPX=e.target.result;const pts=parseGPX(e.target.result);if(!pts||pts.length<2){alert('Could not read GPX.');return;}S.routePts=pts;document.getElementById('upload-zone').innerHTML=`<div class="ui">✅</div><p><strong>${f.name}</strong><br>${pts.length.toLocaleString()} track points</p>`;if(window.cwSaveRoute)cwSaveRoute(f.name,pts.length,S.routeKm||0);loadRouteData(pts);};r.readAsText(f);}
+async function procGPX2(f){if(!S.routePts.length){alert('Load Route 1 first.');return;}const r=new FileReader();r.onload=async e=>{const pts=parseGPX(e.target.result);if(!pts||pts.length<2){alert('Invalid GPX.');return;}S2.routePts=pts;S2.routeKm=calcLen(pts);map.getSource('route2').setData({type:'FeatureCollection',features:[{type:'Feature',geometry:{type:'LineString',coordinates:pts.map(p=>[p.lng,p.lat])}}]});document.getElementById('cmp-zone').innerHTML=`<div class="ui">✅</div><p><strong>${f.name}</strong></p>`;showLoad('Querying water for Route 2…');try{S2.waterPts=await qOverpass(pts,parseInt(document.getElementById('buf').value)||500);}catch(e){S2.waterPts=[];}S2.dryZones=calcDryZones(pts,S2.waterPts,parseInt(document.getElementById('thr').value)||30,S2.routeKm);hideLoad();showCmp();};r.readAsText(f);}
+function parseGPX(txt){const doc=new DOMParser().parseFromString(txt,'application/xml');if(doc.querySelector('parsererror'))return null;const pts=[];for(const s of['trkpt','rtept','wpt']){doc.querySelectorAll(s).forEach(n=>{const la=parseFloat(n.getAttribute('lat')),lo=parseFloat(n.getAttribute('lon'));if(!isNaN(la)&&!isNaN(lo))pts.push({lat:la,lng:lo});});if(pts.length)break;}return pts;}
+function showCmp(){document.getElementById('cmp-card').style.display='block';const r1m=Math.round(S.routeKm),r2m=Math.round(S2.routeKm),r1w=S.waterPts.filter(w=>!REPORTED.has(w.id)).length,r2w=S2.waterPts.length,r1d=S.dryZones.length,r2d=S2.dryZones.length,r1x=r1d?Math.max(...S.dryZones.map(z=>z.gk)):0,r2x=r2d?Math.max(...S2.dryZones.map(z=>z.gk)):0;const w=(a,b,v1,v2,low)=>`<span class="${(low?a<=b:a>=b)?'cmp-w':''}">${v1}</span><span class="${(low?b<a:b>a)?'cmp-w':''}">${v2}</span>`;document.getElementById('cmp-cnt').innerHTML=`<div class="cmp-head"><span>Metric</span><span style="color:#0EA5E9">R1</span><span style="color:#F97316">R2</span></div><div class="cmp-row"><span>📏 Distance</span>${w(r1m,r2m,r1m+'km',r2m+'km',true)}</div><div class="cmp-row"><span>💧 Water pts</span>${w(r1w,r2w,r1w,r2w,false)}</div><div class="cmp-row"><span>⚠️ Dry zones</span>${w(r1d,r2d,r1d,r2d,true)}</div><div class="cmp-row"><span>🏜️ Worst gap</span>${w(r1x,r2x,r1x+'km',r2x+'km',true)}</div>`;}
+function togglePlanClick(){planMode=!planMode;const btn=document.getElementById('plan-btn');map.getCanvas().style.cursor=planMode?'crosshair':'';document.getElementById('map-inst').style.display=planMode?'block':'none';btn.textContent=planMode?'✕ Stop adding':'📍 Click map to add waypoints';btn.style.borderColor=planMode?'var(--p)':'';btn.style.color=planMode?'var(--p)':'';}
+function addWpt(lat,lng){planWpts.push({lat,lng});planMkrs.push(new maplibregl.Marker({color:'#F97316'}).setLngLat([lng,lat]).addTo(map));renderWptList();document.getElementById('calc-btn').disabled=planWpts.length<2;}
+function removeWpt(i){planMkrs[i].remove();planMkrs.splice(i,1);planWpts.splice(i,1);renderWptList();document.getElementById('calc-btn').disabled=planWpts.length<2;}
+function renderWptList(){const el=document.getElementById('wpt-list');if(!planWpts.length){el.innerHTML='<p style="font-size:12px;color:var(--tm)">No waypoints yet.</p>';return;}el.innerHTML=planWpts.map((w,i)=>`<div class="wr"><span>${i===0?'🟢':i===planWpts.length-1?'🏁':'🟠'}</span><span style="flex:1;font-family:monospace;font-size:10px;color:var(--tm)">${w.lat.toFixed(4)},${w.lng.toFixed(4)}</span><button onclick="removeWpt(${i})" style="background:none;border:none;color:var(--rd);cursor:pointer">✕</button></div>`).join('');}
+async function calcRoute(){if(planWpts.length<2)return;showLoad('Calculating route…');try{const cs=planWpts.map(p=>`${p.lng},${p.lat}`).join(';');const d=await(await fetch(`https://router.project-osrm.org/route/v1/cycling/${cs}?overview=full&geometries=geojson`)).json();if(d.code!=='Ok')throw new Error(d.message);const geo=d.routes[0].geometry,rpts=geo.coordinates.map(c=>({lat:c[1],lng:c[0]}));S.routePts=rpts;S.routeKm=d.routes[0].distance/1000;S.origGPX=`<?xml version="1.0"?><gpx version="1.1"><trk><trkseg>${rpts.map(p=>`<trkpt lat="${p.lat}" lon="${p.lng}"/>`).join('')}</trkseg></trk></gpx>`;map.getSource('route').setData({type:'FeatureCollection',features:[{type:'Feature',geometry:geo}]});map.fitBounds(geo.coordinates.reduce((b,c)=>b.extend(c),new maplibregl.LngLatBounds(geo.coordinates[0],geo.coordinates[0])),{padding:50});S.waterPts=await qOverpass(rpts,parseInt(document.getElementById('buf').value)||500);hideLoad();finishLoad(rpts);if(planMode)togglePlanClick();}catch(e){hideLoad();alert('Route error: '+e.message);}}
+function clearPlan(){planWpts=[];planMkrs.forEach(m=>m.remove());planMkrs=[];if(planMode)togglePlanClick();S.routePts=[];S.waterPts=[];S.dryZones=[];S.origGPX=null;S.routeKm=0;['route','wosm','wcomm','wrep'].forEach(s=>map.getSource(s)?.setData(EMPTY));renderWptList();document.getElementById('calc-btn').disabled=true;['stats-card','alerts-card','wlist-card','dl-row'].forEach(id=>document.getElementById(id).style.display='none');}
+function samplePts(pts,max=80){if(pts.length<=max)return pts;const s=Math.ceil(pts.length/max);const r=pts.filter((_,i)=>i%s===0);if(r[r.length-1]!==pts[pts.length-1])r.push(pts[pts.length-1]);return r;}
+async function qOverpass(rpts,buf){
+  const sp=samplePts(rpts,80),cs=sp.map(p=>`${p.lat},${p.lng}`).join(','),ar=`(around:${buf},${cs})`;
+  const q=`[out:json][timeout:60];(node["amenity"="drinking_water"]${ar};node["man_made"="water_tap"]["drinking_water"!="no"]${ar};node["natural"="spring"]["drinking_water"="yes"]${ar};node["amenity"="fountain"]["drinking_water"="yes"]${ar};node["tourism"="picnic_site"]["drinking_water"="yes"]${ar};node["amenity"="toilets"]["drinking_water"="yes"]${ar};node["amenity"="grave_yard"]${ar};way["amenity"="grave_yard"]${ar};node["landuse"="cemetery"]${ar};way["landuse"="cemetery"]${ar};);out center;`;
+  for(const ep of OVR){try{const res=await fetch(ep,{method:'POST',body:new URLSearchParams({data:q}),headers:{'Content-Type':'application/x-www-form-urlencoded'}});if(!res.ok)continue;const d=await res.json();const seen=new Set();return d.elements.filter(e=>{if(!['node','way'].includes(e.type)||seen.has(e.id))return false;seen.add(e.id);return true;}).map(e=>{const lat=e.center?e.center.lat:e.lat,lng=e.center?e.center.lon:e.lon;return{id:`osm_${e.id}`,lat,lng,water_type:e.tags?.amenity||e.tags?.man_made||e.tags?.natural||e.tags?.landuse||'drinking_water',name:e.tags?.name||null,seasonal:e.tags?.seasonal==='yes',source:'osm'};});}catch(e){continue;}}
+  throw new Error('Overpass unreachable');
+}
+function hav(a,b){const R=6371000,p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dp=(b.lat-a.lat)*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180,x=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function calcLen(pts){let t=0;for(let i=1;i<pts.length;i++)t+=hav(pts[i-1],pts[i]);return t/1000;}
+function calcDryZones(rpts,wpts,thr,totalKm){const active=wpts.filter(w=>!REPORTED.has(w.id));if(!active.length)return[{fk:0,tk:Math.round(totalKm*10)/10,gk:Math.round(totalKm*10)/10}];let d=0;const rd=[{...rpts[0],dm:0}];for(let i=1;i<rpts.length;i++){d+=hav(rpts[i-1],rpts[i]);rd.push({...rpts[i],dm:d});}const proj=active.map(w=>{let mn=Infinity,pos=0;rd.forEach(r=>{const dd=hav(w,r);if(dd<mn){mn=dd;pos=r.dm;}});return pos;}).sort((a,b)=>a-b);const zones=[],tm=thr*1000;let prev=0;proj.forEach(p=>{if(p-prev>tm)zones.push({fk:Math.round(prev/100)/10,tk:Math.round(p/100)/10,gk:Math.round((p-prev)/100)/10});prev=p;});const tot=rd[rd.length-1].dm;if(tot-prev>tm)zones.push({fk:Math.round(prev/100)/10,tk:Math.round(tot/100)/10,gk:Math.round((tot-prev)/100)/10});return zones;}
+function ptAtKm(rpts,km){let dist=0,tgt=km*1000;for(let i=1;i<rpts.length;i++){const d=hav(rpts[i-1],rpts[i]);if(dist+d>=tgt){const t=(tgt-dist)/d;return{lat:rpts[i-1].lat+t*(rpts[i].lat-rpts[i-1].lat),lng:rpts[i-1].lng+t*(rpts[i].lng-rpts[i-1].lng)};}dist+=d;}return rpts[rpts.length-1];}
+async function loadRouteData(pts){showLoad('Querying OpenStreetMap…');const c=pts.map(p=>[p.lng,p.lat]);map.getSource('route').setData({type:'FeatureCollection',features:[{type:'Feature',geometry:{type:'LineString',coordinates:c}}]});map.fitBounds(c.reduce((b,p)=>b.extend(p),new maplibregl.LngLatBounds(c[0],c[0])),{padding:50});S.routeKm=calcLen(pts);if(window.cwSaveRoute)cwSaveRoute('',pts.length,S.routeKm);try{S.waterPts=await qOverpass(pts,parseInt(document.getElementById('buf').value)||500);}catch(e){hideLoad();alert('Could not fetch water points.');return;}hideLoad();finishLoad(pts);}
+function finishLoad(pts){S.dryZones=calcDryZones(pts,[...S.waterPts,...S.commPts],parseInt(document.getElementById('thr').value)||30,S.routeKm);refreshLayers();updateStats();updateAlerts();updateList();['stats-card','alerts-card','wlist-card','dl-row'].forEach(id=>document.getElementById(id).style.display='block');}
+function refreshLayers(){const act=S.waterPts.filter(w=>!REPORTED.has(w.id)),rep=S.waterPts.filter(w=>REPORTED.has(w.id));map.getSource('wosm').setData({type:'FeatureCollection',features:act.map(w=>({type:'Feature',geometry:{type:'Point',coordinates:[w.lng,w.lat]},properties:{...w}}))});map.getSource('wrep').setData({type:'FeatureCollection',features:rep.map(w=>({type:'Feature',geometry:{type:'Point',coordinates:[w.lng,w.lat]},properties:{...w}}))});map.getSource('wcomm').setData({type:'FeatureCollection',features:S.commPts.map(w=>({type:'Feature',geometry:{type:'Point',coordinates:[w.lng,w.lat]},properties:{...w}}))});}
+function updateStats(){document.getElementById('s-dist').textContent=Math.round(S.routeKm);document.getElementById('s-wpt').textContent=S.waterPts.filter(w=>!REPORTED.has(w.id)).length+S.commPts.length;document.getElementById('s-dry').textContent=S.dryZones.length;}
+function updateAlerts(){const el=document.getElementById('alerts-cnt'),t=document.getElementById('thr').value;if(!S.dryZones.length){el.innerHTML=`<div class="ao">✅ No dry zones! Water every ${t}km or less.</div>`;return;}el.innerHTML=S.dryZones.map(z=>{const carry=calcCarry(z.gk),cs=carry!==null?`<span style="color:var(--p);font-weight:600"> · 💧 ${carry}L</span>`:'';return`<div class="ai"><div class="at">⚠️ ${z.gk}km gap${cs}</div><div class="ad">km ${z.fk} → km ${z.tk}</div></div>`;}).join('');}
+function updateList(){const el=document.getElementById('wlist-cnt'),act=S.waterPts.filter(w=>!REPORTED.has(w.id)).map(p=>({...p,_s:'osm'})),rep=S.waterPts.filter(w=>REPORTED.has(w.id)).map(p=>({...p,_s:'reported'})),all=[...act,...S.commPts.map(p=>({...p,_s:'community'})),...rep];if(!all.length){el.innerHTML='<div style="text-align:center;padding:14px 0;color:var(--tm);font-size:12px">🏜️ No water found.</div>';return;}el.innerHTML=all.slice(0,60).map(w=>{const em=TE[w.water_type]||'💧',tp=(w.water_type||'water').replace(/_/g,' '),nm=w.name||(tp[0].toUpperCase()+tp.slice(1));const isCem=w.water_type==='grave_yard'||w.water_type==='cemetery';const bg=w._s==='community'?'👥 Community':w._s==='reported'?'⚠️ Broken':isCem?'⛼ Cemetery':'🌍 OSM';return`<div class="wi"><div class="wd ${w._s}"></div><div class="wif" onclick="map.flyTo({center:[${w.lng},${w.lat}],zoom:17,speed:1.5})"><div class="wn">${em} ${nm}</div><div class="wm">${bg}</div></div></div>`;}).join('');if(all.length>60)el.innerHTML+=`<div style="text-align:center;color:var(--tm);font-size:11px;padding:7px">+${all.length-60} more on map</div>`;}
+function selType(el,t){document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));el.classList.add('active');S.selType=t;}
+function exitAddMode(){S.addMode=false;const fab=document.getElementById('fab');fab.textContent='+';fab.classList.remove('active');map.getCanvas().style.cursor='';document.getElementById('map-inst').style.display='none';const tb=document.getElementById('tap-btn');if(tb){tb.textContent='🗺️ Tap map';tb.style.borderColor='';tb.style.color='';}}
+function cancelAdd(){exitAddMode();if(S.pendMkr){S.pendMkr.remove();S.pendMkr=null;}S.pendPt=null;document.getElementById('pt-coords-g').style.display='none';document.getElementById('save-pt-btn').disabled=true;if(isMobile())setView('split');}
+function toggleAdd(){if(S.addMode){cancelAdd();return;}S.addMode=true;const fab=document.getElementById('fab');fab.textContent='✕';fab.classList.add('active');map.getCanvas().style.cursor='crosshair';document.getElementById('map-inst').style.display='block';const tb=document.getElementById('tap-btn');if(tb){tb.textContent='✕ Cancel';tb.style.borderColor='var(--rd)';tb.style.color='var(--rd)';}const b=document.getElementById('addpt-bod');b.classList.remove('hid');b.previousElementSibling.classList.remove('col');loadNickname();if(planMode)togglePlanClick();if(isMobile())setView('map');}
+function setPoint(lat,lng){S.pendPt={lat,lng};if(S.pendMkr)S.pendMkr.remove();S.pendMkr=new maplibregl.Marker({color:'#22C55E'}).setLngLat([lng,lat]).addTo(map);document.getElementById('pt-coords').textContent=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;document.getElementById('pt-coords-g').style.display='block';document.getElementById('save-pt-btn').disabled=false;map.flyTo({center:[lng,lat],zoom:16,speed:1.5});const b=document.getElementById('addpt-bod');b.classList.remove('hid');b.previousElementSibling.classList.remove('col');}
+function placePt(lat,lng){setPoint(lat,lng);exitAddMode();if(isMobile())setTimeout(()=>setView('panel'),350);}
+function useMyLocation(){const btn=document.getElementById('loc-btn');if(!navigator.geolocation){alert('GPS not available.');return;}btn.textContent='⏳…';btn.disabled=true;navigator.geolocation.getCurrentPosition(pos=>{btn.textContent='📍 My location';btn.disabled=false;setPoint(pos.coords.latitude,pos.coords.longitude);exitAddMode();if(isMobile())setTimeout(()=>setView('panel'),350);},()=>{btn.textContent='📍 My location';btn.disabled=false;alert('Could not get location.');},{enableHighAccuracy:true,timeout:10000});}
+function submitPt(){if(window.cwSubmitPt){window.cwSubmitPt();return;}if(!S.pendPt){alert('Tap the map or use My Location first.');return;}const st=document.getElementById('save-st');st.style.display='block';st.textContent='⏳ Saving…';st.style.background='rgba(14,165,233,.1)';st.style.color='var(--p)';saveCommPt({lat:S.pendPt.lat,lng:S.pendPt.lng,water_type:S.selType,notes:document.getElementById('pt-notes').value.trim(),contributor_name:document.getElementById('contributor-name').value.trim()||getNickname()||'Anonymous',points:10}).then(ok=>{if(ok){st.textContent=S.sb?'✅ Saved to community DB!':'✅ Saved on this device!';st.style.background='rgba(34,197,94,.1)';st.style.color='var(--gn)';refreshLayers();setTimeout(()=>{cancelAdd();document.getElementById('pt-notes').value='';st.style.display='none';},2500);}else{st.style.display='none';}});}
+function toggleLive(){liveOn=!liveOn;const btn=document.getElementById('live-btn');if(liveOn){if(!navigator.geolocation){alert('GPS not available.');liveOn=false;return;}btn.classList.add('active');btn.textContent='🟢 Live ON';watchId=navigator.geolocation.watchPosition(onGPS,()=>{},{enableHighAccuracy:true,maximumAge:5000});}else{btn.classList.remove('active');btn.textContent='📍 Live Mode';if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}if(userMkr){userMkr.remove();userMkr=null;}document.getElementById('live-alert').style.display='none';}}
+function onGPS(pos){const la=pos.coords.latitude,lo=pos.coords.longitude;if(!userMkr)userMkr=new maplibregl.Marker({color:'#EAB308'}).setLngLat([lo,la]).addTo(map);else userMkr.setLngLat([lo,la]);const r=parseFloat(document.getElementById('nearby-r').value)||2,all=[...S.waterPts.filter(w=>!REPORTED.has(w.id)),...S.commPts];if(!all.length)return;const near=all.map(w=>({...w,dk:hav({lat:la,lng:lo},w)/1000})).filter(w=>w.dk<=r).sort((a,b)=>a.dk-b.dk);if(near.length){const w=near[0],em=TE[w.water_type]||'💧',nm=w.name||(w.water_type||'water').replace(/_/g,' '),dist=w.dk<1?`${Math.round(w.dk*1000)}m`:`${w.dk.toFixed(1)}km`;document.getElementById('la-txt').textContent=`${em} Water ${dist} away — ${nm}`;document.getElementById('la-nav').href=`https://www.google.com/maps/dir/${la},${lo}/${w.lat},${w.lng}`;document.getElementById('live-alert').style.display='flex';}else document.getElementById('live-alert').style.display='none';}
+function downloadGPX(){const all=[...S.waterPts.filter(w=>!REPORTED.has(w.id)),...S.commPts];if(!S.origGPX||!all.length){alert('No water points to add.');return;}const sym=t=>({'drinking_water':'Drinking Water',fountain:'Drinking Water',shop:'Convenience Store',bar:'Restaurant',picnic_site:'Scenic Area',toilets:'Restroom'}[t]||'Water Source');const ww=all.map(w=>{const em=TE[w.water_type]||'💧',tp=(w.water_type||'water').replace(/_/g,' '),nm=w.name||`${em} ${tp[0].toUpperCase()+tp.slice(1)}`;return`  <wpt lat="${w.lat}" lon="${w.lng}">\n    <name><![CDATA[${nm}]]></name>\n    <sym>${sym(w.water_type)}</sym>\n  </wpt>`;}).join('\n');const dw=S.dryZones.map(z=>{const pt=ptAtKm(S.routePts,z.fk),carry=calcCarry(z.gk),cs=carry?` Carry ${carry}L.`:'';return`  <wpt lat="${pt.lat}" lon="${pt.lng}">\n    <name><![CDATA[⚠️ Fill up — ${z.gk}km without water]]></name>\n    <sym>Alert</sym>\n  </wpt>`;}).join('\n');let out=S.origGPX;const m=out.match(/<(trk|rte)[\s>]/);if(m)out=out.replace(m[0],[ww,dw].join('\n')+'\n'+m[0]);else out=out.replace('</gpx>',[ww,dw].join('\n')+'\n</gpx>');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'application/gpx+xml'}));a.download='cyclewater_enriched.gpx';a.click();URL.revokeObjectURL(a.href);}
+function showLoad(t){document.getElementById('load-txt').textContent=t;document.getElementById('loading').style.display='flex';}
+function hideLoad(){document.getElementById('loading').style.display='none';}
+function toggleSec(id,tog){document.getElementById(id).classList.toggle('hid');tog.classList.toggle('col');}
+window.addEventListener('load',()=>{
+  loadNickname();const n=getNickname();if(n)document.getElementById('bar-user').textContent=`👤 ${n}`;
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  window.cwApp={uploadPhoto,saveCommPt,refreshLayers,calcDryZones,updateStats,updateAlerts,updateList,getNickname,saveLocalPts};
+});
+</script>
+<script src="./gamification.js"></script>
+<script src="./cw-community.js"></script>
+<script src="./recent-routes.js"></script>
+<script src="./cw-search.js"></script>
+<script src="./cw-identity.js"></script>
+<style>
+.maplibregl-popup-content{background:#1E293B!important;color:#F1F5F9!important;border:1px solid #334155!important;border-radius:12px!important;padding:12px 14px!important;box-shadow:0 8px 30px rgba(0,0,0,.5)!important;min-width:170px}
+.maplibregl-popup-close-button{color:#94A3B8!important;font-size:18px!important;right:8px!important;top:6px!important}
+.maplibregl-popup-tip{border-top-color:#1E293B!important;border-bottom-color:#1E293B!important}
+.maplibregl-ctrl-group{background:#1E293B!important;border:1px solid #334155!important;border-radius:8px!important}
+.maplibregl-ctrl-group button{background:#1E293B!important;color:#F1F5F9!important}
+.maplibregl-ctrl-group button:hover{background:#334155!important}
+</style>
+</body>
+</html>

@@ -1,7 +1,7 @@
-// CycleWater Service Worker — v5
+// CycleWater Service Worker — v6
 // Bump CACHE version whenever you deploy new files
 
-const CACHE = 'cyclewater-v5';
+const CACHE = 'cyclewater-v6';
 
 const APP_FILES = [
   './',

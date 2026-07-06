@@ -1,12 +1,13 @@
-// CycleWater Service Worker — v9
+// CycleWater Service Worker — v11
 // Bump CACHE version whenever you deploy new files
 
-const CACHE = 'cyclewater-v9';
+const CACHE = 'cyclewater-v11';
 
 const APP_FILES = [
   './',
   './index.html',
   './manifest.json',
+  './cw-theme.css',
   './gamification.js',
   './cw-community.js',
   './recent-routes.js',
@@ -14,7 +15,8 @@ const APP_FILES = [
   './cw-identity.js',
   './sw.js',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './cw-extras.js'
 ];
 
 const CDN_FILES = [

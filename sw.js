@@ -1,4 +1,4 @@
-// CycleWater Service Worker — v45
+// CycleWater Service Worker — v47
 // Bump CACHE version whenever you deploy new files
 
 const CACHE = 'cyclewater-v45';
